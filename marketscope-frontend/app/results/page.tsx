@@ -530,3 +530,7 @@ export default function ResultsPage() {
     </div>
   );
 }
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
