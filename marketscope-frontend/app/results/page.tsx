@@ -1,3 +1,5 @@
+// app/results/page.tsx
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,35 +8,24 @@ import { useSearchParams, useRouter } from "next/navigation";
 //------------------------------------------------------------
 // Types that mirror FastAPI response
 //------------------------------------------------------------
-interface ApiResult {
-  directive: string;
-  web_monitor: string[];     // “• [WebMonitor] Title (Link: …)”
-  trend_analyzer: string[];  // free-form lines
-  summary_agent: string[];   // bullet lines beginning with •
-}
-
-//------------------------------------------------------------
-// Utility helpers
-//------------------------------------------------------------
-interface WebItem {
+interface WebArticle {
   title: string;
   url: string;
+  summary?: string;
+  image: string;
 }
-function parseWebBullet(b: string): WebItem {
-  const stripped = b.replace(/^•\s*\[WebMonitor\]\s*/, "").trim();
-  const m = stripped.match(/^(.*)\s*\(Link:\s*(https?:\/\/[^)]+)\)$/);
-  return m
-    ? { title: m[1].trim(), url: m[2].trim() }
-    : { title: stripped, url: "" };
+
+interface TrendDataPoint {
+  label: string;
+  value: string;
+  description?: string;
 }
-function unsplashFor(title: string) {
-  const words = title
-    .split(" ")
-    .filter((w) => w.length > 3)
-    .slice(0, 2)
-    .join(",");
-  const query = encodeURIComponent(words || "finance,news");
-  return `https://source.unsplash.com/480x300/?${query}`;
+
+interface ApiResult {
+  directive: string;
+  web_monitor: WebArticle[];    // now an array of objects
+  trend_analyzer: TrendDataPoint[];
+  summary_agent: string;        // a paragraph summary
 }
 
 //------------------------------------------------------------
@@ -73,7 +64,7 @@ export default function ResultsPage() {
     run();
   }, [directive]);
 
-  // If no directive in URL → go back home
+  // Guard: if someone lands on /results without param → go home
   useEffect(() => {
     if (!directive) router.push("/");
   }, [directive, router]);
@@ -81,7 +72,7 @@ export default function ResultsPage() {
   //--------------- RENDER STATES ---------------------------
   if (!directive) return null;
 
-  if (loading) {
+  if (loading)
     return (
       <PageShell>
         <div className="flex flex-col items-center py-24">
@@ -105,9 +96,8 @@ export default function ResultsPage() {
         `}</style>
       </PageShell>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
       <PageShell>
         <div className="text-center py-20">
@@ -133,21 +123,23 @@ export default function ResultsPage() {
         `}</style>
       </PageShell>
     );
-  }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // At this point, loading is false, error is empty. Still guard against null:
+  // ─────────────── Guard against data === null ───────────────
   if (!data) {
-    // (This should normally never happen—data should be set once loading completes)
+    // (Should only briefly happen between loading → data arrival.)
     return null;
   }
 
   //--------------------------------------------------------
-  // Normal Render (data is non-null here)
+  // Normal Render (now that `data` is guaranteed non-null)
   //--------------------------------------------------------
-  const webItems = data.web_monitor.map(parseWebBullet);
-  const googleNews = `https://news.google.com/search?q=${encodeURIComponent(directive)}`;
-  const wikiSearch = `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(directive)}`;
+  const webItems = data.web_monitor; 
+  const googleNews = `https://news.google.com/search?q=${encodeURIComponent(
+    directive
+  )}`;
+  const wikiSearch = `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(
+    directive
+  )}`;
 
   return (
     <PageShell>
@@ -178,12 +170,21 @@ export default function ResultsPage() {
               className="card-link"
             >
               <div className="card-img">
-                <img src={unsplashFor(w.title)} alt="thumbnail" />
+                <img src={w.image} alt={`Thumbnail for ${w.title}`} />
               </div>
               <div className="card-body">
                 <h3>{w.title}</h3>
+                {w.summary && (
+                  <p className="summary-lines">
+                    {w.summary.length > 100
+                      ? w.summary.slice(0, 100) + "…"
+                      : w.summary}
+                  </p>
+                )}
                 {w.url && (
-                  <p className="url">{new URL(w.url).hostname.replace("www.", "")}</p>
+                  <p className="url">
+                    {new URL(w.url).hostname.replace("www.", "")}
+                  </p>
                 )}
               </div>
             </a>
@@ -205,21 +206,24 @@ export default function ResultsPage() {
               >
                 <path d="M3 17h2v-7H3v7zm4 0h2v-4H7v4zm4 0h2v-10h-2v10zm4 0h2v-6h-2v6zm4 0h2v-3h-2v3z" />
               </svg>
-              <p>{line}</p>
+              <div className="trend-body">
+                <h4 className="trend-label">{line.label}</h4>
+                <p className="trend-value">{line.value}</p>
+                {line.description && (
+                  <p className="trend-desc">{line.description}</p>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </Section>
 
       {/* SUMMARY AGENT */}
-      <Section title="AI Summary" subtitle="Actionable one-liners you can paste into a deck">
-        <ul className="summary-list">
-          {data.summary_agent.map((s, i) => (
-            <li key={i}>
-              <span className="chevron">›</span> {s.replace(/^•\s*/, "")}
-            </li>
-          ))}
-        </ul>
+      <Section
+        title="AI Summary"
+        subtitle="Actionable one‐paragraph intelligence you can paste into a deck"
+      >
+        <div className="summary-paragraph">{data.summary_agent}</div>
       </Section>
 
       {/* FOOTER / GO BACK */}
@@ -277,7 +281,7 @@ export default function ResultsPage() {
           text-decoration: underline;
         }
 
-        /* Card */
+        /* Card (Web Monitor) */
         .card-link {
           display: flex;
           flex-direction: column;
@@ -306,6 +310,11 @@ export default function ResultsPage() {
           font-size: 1rem;
           line-height: 1.4;
         }
+        .card-body .summary-lines {
+          font-size: 0.9rem;
+          color: #c9d1d9;
+          margin-bottom: 0.5rem;
+        }
         .card-body .url {
           font-size: 0.8rem;
           color: #8b949e;
@@ -321,33 +330,36 @@ export default function ResultsPage() {
           border-radius: 6px;
           padding: 1rem;
         }
-        .trend-card p {
+        .trend-body {
+          display: flex;
+          flex-direction: column;
+        }
+        .trend-label {
+          font-size: 1rem;
+          font-weight: 600;
           margin: 0;
+          color: #00ffff;
+        }
+        .trend-value {
+          margin: 0.25rem 0;
           font-size: 0.95rem;
-          line-height: 1.5;
+          color: #e6edf3;
+        }
+        .trend-desc {
+          font-size: 0.85rem;
+          color: #8b949e;
+          margin: 0;
         }
 
         /* Summary */
-        .summary-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 0.85rem;
-        }
-        .summary-list li {
+        .summary-paragraph {
           background: #1a1f2e;
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 6px;
-          padding: 0.85rem 1rem;
+          padding: 1rem 1.25rem;
           font-size: 0.95rem;
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-        }
-        .chevron {
-          color: #00ffff;
+          line-height: 1.5;
+          color: #c9d1d9;
         }
 
         /* Buttons */
