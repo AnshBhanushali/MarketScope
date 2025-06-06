@@ -243,7 +243,7 @@ const AllInOneHome: React.FC = () => {
           border: 1px solid var(--border-soft);
           border-radius: 6px;
           font-family: 'Inter', sans-serif;
-          font-size: 0.95rem;
+          font-size: 1rem;
           color: var(--text-light);
           transition: background 0.2s, transform 0.1s;
         }
