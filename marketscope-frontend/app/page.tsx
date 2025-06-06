@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // ← new import
 
 const AllInOneHome: React.FC = () => {
+  const router = useRouter(); // ← new hook
   const [showIntro, setShowIntro] = useState(true);
   const [query, setQuery] = useState("");
   const [exampleQueries, setExampleQueries] = useState<string[]>([]);
@@ -48,6 +50,14 @@ const AllInOneHome: React.FC = () => {
       "M22.46 6c-.77.35-1.6.59-2.46.69A4.23 4.23 0 0 0 21.86 4c-.83.49-1.76.85-2.74 1.05A4.18 4.18 0 0 0 15.5 4c-2.34 0-4.23 1.9-4.23 4.22 0 .33.04.66.11.97C7.69 8.97 4.07 7.13 1.64 4.15a4.24 4.24 0 0 0-.57 2.12c0 1.46.75 2.75 1.9 3.5a4.2 4.2 0 0 1-1.92-.53v.05c0 2.04 1.45 3.75 3.36 4.13a4.32 4.32 0 0 1-1.9.07 4.24 4.24 0 0 0 3.94 2.93A8.4 8.4 0 0 1 1 18.58a11.86 11.86 0 0 0 6.41 1.88c7.68 0 11.88-6.36 11.88-11.9 0-.18-.01-.35-.02-.53A8.64 8.64 0 0 0 22.46 6z",
     github:
       "M12 0.5C5.73 0.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.92.58.11.79-.25.79-.55 0-.27-.01-1.15-.02-2.09-3.1.67-3.76-1.49-3.76-1.49-.53-1.35-1.3-1.71-1.3-1.71-1.06-.73.08-.72.08-.72 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.75-1.56-2.48-.28-5.09-1.24-5.09-5.51 0-1.22.44-2.21 1.17-2.99-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.14a10.9 10.9 0 0 1 2.87-.39c.97.01 1.95.13 2.87.39 2.19-1.45 3.15-1.14 3.15-1.14.62 1.57.23 2.73.11 3.02.73.78 1.17 1.77 1.17 2.99 0 4.29-2.61 5.23-5.1 5.5.43.37.81 1.1.81 2.21 0 1.6-.02 2.89-.02 3.29 0 .3.21.67.8.55A11.52 11.52 0 0 0 23.5 12c0-6.27-5.23-11.5-11.5-11.5z",
+  };
+
+  // ← new handler: navigate to /results with query param
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      router.push(`/results?directive=${encodeURIComponent(query.trim())}`);
+    }
   };
 
   return (
@@ -459,7 +469,7 @@ const AllInOneHome: React.FC = () => {
 
           {/* Full-Width Search Input */}
           <div className="search-full">
-            <form onSubmit={(e) => e.preventDefault()}>
+            <form onSubmit={handleSearchSubmit}>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
