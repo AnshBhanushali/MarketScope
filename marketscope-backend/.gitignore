@@ -1,0 +1,46 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+.dist-info/
+*.egg
+
+# Logs
+*.log
+
+# Unit test / coverage reports
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+nosetests.xml
+test.xml
+coverage_html_report/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Pytest
+.cache
+pytest_cache/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Other
+*.DS_Store
+
+.env
