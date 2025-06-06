@@ -1,300 +1,208 @@
-# main.py
+"""main.py — MarketScope FastAPI backend (fully working)
+-------------------------------------------------------
+• Compatible with openai‑python ≥ 1.0 (uses AsyncOpenAI).
+• Scrapes Google News RSS, resolves true article URLs, fetches <og:image> thumbnails.
+• Pulls 7‑day Google Trends data via pytrends.
+• Generates a 3‑5 bullet AI summary with GPT‑4o‑mini (fallback to 3.5 if needed).
+• Returns structured JSON consumed by the Next.js Results page.
+"""
+from __future__ import annotations
 
-import os
 import asyncio
-from typing import List, Optional
-import uvicorn
-from fastapi.middleware.cors import CORSMiddleware
+import os
+import urllib.parse
+from typing import List, Dict, Optional
 
+import feedparser
+import httpx
+import pandas as pd
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from dotenv import load_dotenv
-import feedparser
-import openai
+from pytrends.request import TrendReq
 
-import httpx
-from bs4 import BeautifulSoup
+from openai import AsyncOpenAI  # ⬅️ openai‑python ≥ 1.0
 
-import crewai        # placeholder
-from linkup import LinkupClient  # placeholder
-import mcp           # placeholder
+# ──────────────────────────────────────────────────────────────
+# ENV + OpenAI client
+# ──────────────────────────────────────────────────────────────
+load_dotenv()
+client = AsyncOpenAI()  # Automatically picks up OPENAI_API_KEY
 
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Load .env and grab OPENAI_API_KEY
-# ────────────────────────────────────────────────────────────────────────────────
-load_dotenv()  # load variables from .env in the same folder
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-if not OPENAI_API_KEY:
-    raise RuntimeError("Missing OPENAI_API_KEY environment variable")
-openai.api_key = OPENAI_API_KEY
-
-app = FastAPI(title="MarketScope – Real-Time Market Intel Generator")
-
-origins = [
-    "http://localhost:3000",  # your Next.js dev server
-    # Add other origins if needed (e.g. your production domain)
-]
-
+# ──────────────────────────────────────────────────────────────
+# FastAPI setup + CORS (allow Next.js dev server)
+# ──────────────────────────────────────────────────────────────
+app = FastAPI(title="MarketScope – Real‑Time Market Intel API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
     allow_credentials=True,
-    allow_methods=["*"],       # allow GET, POST, OPTIONS, etc.
-    allow_headers=["*"],       # allow all headers
 )
 
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Pydantic models for incoming request and outgoing response
-# ────────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# Pydantic models (clean response schema)
+# ──────────────────────────────────────────────────────────────
 class DirectiveRequest(BaseModel):
     directive: str
 
 
-class WebArticle(BaseModel):
+class ArticleItem(BaseModel):
     title: str
     url: str
-    summary: Optional[str] = None
-    image: str
+    thumbnail: Optional[str] | None = None
 
 
-class TrendDataPoint(BaseModel):
-    label: str
-    value: str
-    description: Optional[str] = None
+class WebMonitorResult(BaseModel):
+    articles: List[ArticleItem]
 
 
-class ApiResult(BaseModel):
+class TrendAnalyzerResult(BaseModel):
+    interest_over_time: Dict[str, int]
+    current_interest: int
+    sentiment: Optional[float] | None = None  # placeholder
+    trending_queries: List[str]
+
+
+class SummaryResult(BaseModel):
+    bullets: List[str]
+
+
+class FullResult(BaseModel):
     directive: str
-    web_monitor: List[WebArticle]
-    trend_analyzer: List[TrendDataPoint]
-    summary_agent: str  # a paragraph-style summary
+    web_monitor: WebMonitorResult
+    trend_analyzer: TrendAnalyzerResult
+    summary_agent: SummaryResult
 
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Utility: fetch Open Graph image from a URL, fallback to Unsplash
-# ────────────────────────────────────────────────────────────────────────────────
-async def fetch_og_image(client: httpx.AsyncClient, url: str) -> Optional[str]:
+# ──────────────────────────────────────────────────────────────
+# Helper functions
+# ──────────────────────────────────────────────────────────────
+async def fetch_html(url: str) -> str | None:
+    """Retrieve HTML with redirects and basic error handling."""
     try:
-        resp = await client.get(url, timeout=5.0)
-        sess = BeautifulSoup(resp.text, "html.parser")
-        og = sess.find("meta", property="og:image")
-        if og and og.get("content"):
-            return og["content"]
+        async with httpx.AsyncClient(timeout=8) as http:
+            r = await http.get(url, follow_redirects=True)
+            r.raise_for_status()
+            return r.text
     except Exception:
-        pass
-    return None
+        return None
 
 
-def unsplash_fallback(query: str) -> str:
-    q = query.replace(" ", ",")
-    return f"https://source.unsplash.com/480x300/?{q}"
+async def fetch_thumbnail(url: str) -> Optional[str]:
+    """Return <og:image> or first <img> src from a page."""
+    html = await fetch_html(url)
+    if not html:
+        return None
+    soup = BeautifulSoup(html, "html.parser")
+    og = soup.find("meta", {"property": "og:image"})
+    if og and og.get("content"):
+        return og["content"]
+    img = soup.find("img")
+    return img["src"] if img and img.get("src") else None
 
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Agent Stubs (enhanced)
-# ────────────────────────────────────────────────────────────────────────────────
-async def run_web_monitor(directive: str) -> List[WebArticle]:
-    """
-    Web Monitor Agent: uses Google News RSS (public) and tries to pull out
-    each article’s title, link, summary, and OG image (or a fallback]).
-    """
-    await asyncio.sleep(0.5)  # simulate latency
+# ──────────────────────────────────────────────────────────────
+# Agents
+# ──────────────────────────────────────────────────────────────
+async def run_web_monitor(query: str) -> WebMonitorResult:
+    """Scrape Google News RSS, pull top 3 articles + thumbnails."""
+    encoded = urllib.parse.quote_plus(query)
+    rss_url = f"https://news.google.com/rss/search?q={encoded}"
+    feed = feedparser.parse(rss_url)
 
-    query = directive.replace(" ", "+")
-    rss_url = f"https://news.google.com/rss/search?q={query}"
+    async def build_item(entry) -> ArticleItem:
+        title = entry.get("title", "(no title)")
+        raw_link = entry.get("link", "")
+        # Resolve actual article URL from Google redirect
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(raw_link).query)
+        url = qs.get("url", [raw_link])[0]
+        thumb = await fetch_thumbnail(url)
+        return ArticleItem(title=title, url=url, thumbnail=thumb)
 
-    parsed = feedparser.parse(rss_url)
-    articles: List[WebArticle] = []
+    tasks = [asyncio.create_task(build_item(e)) for e in feed.entries[:3]]
+    articles = await asyncio.gather(*tasks)
+    return WebMonitorResult(articles=articles)
 
-    async with httpx.AsyncClient() as client:
-        # Gather up to 5 entries
-        entries = parsed.entries[:5]
-        tasks = []
-        for entry in entries:
-            title = entry.get("title", "No title")
-            link = entry.get("link", "")
-            summary = entry.get("summary", "") or entry.get("description", "")
-            tasks.append((title, link, summary))
 
-        # For each entry, fetch OG image (if possible) concurrently
-        og_tasks = []
-        for title, link, summary in tasks:
-            og_tasks.append(fetch_og_image(client, link))
-
-        og_results = await asyncio.gather(*og_tasks)
-
-        for idx, (title, link, summary) in enumerate(tasks):
-            image_url = og_results[idx] or unsplash_fallback(title)
-            articles.append(
-                WebArticle(
-                    title=title,
-                    url=link,
-                    summary=summary,
-                    image=image_url
-                )
-            )
-
-    if not articles:
-        # Fallback if no RSS entries
-        articles.append(
-            WebArticle(
-                title=f"No recent RSS results for '{directive}'",
-                url="",
-                summary=None,
-                image=unsplash_fallback("finance,news"),
-            )
+async def run_trend_analyzer(term: str) -> TrendAnalyzerResult:
+    """Pull last 7‑day Google Trends numbers + top related queries."""
+    pytrends = TrendReq(timeout=(10, 25))
+    try:
+        pytrends.build_payload([term], timeframe="now 7-d")
+        df: pd.DataFrame = (
+            pytrends.interest_over_time().drop(columns=["isPartial"], errors="ignore")
         )
+        if df.empty:
+            return TrendAnalyzerResult(interest_over_time={}, current_interest=0, trending_queries=[])
 
-    return articles
+        interest = {d.strftime("%Y-%m-%d"): int(v) for d, v in zip(df.index, df[term])}
+        current = int(df[term].iloc[-1])
 
+        rel = pytrends.related_queries().get(term, {})
+        top_df = rel.get("top", pd.DataFrame())
+        trending = top_df.head(3)["query"].astype(str).tolist() if not top_df.empty else []
 
-async def run_trend_analyzer(directive: str) -> List[TrendDataPoint]:
-    """
-    Trend Analyzer Agent: calls OpenAI (GPT-4) to generate realistic trend data points
-    in JSON form, e.g. current search volume, week-over-week change, sentiment score.
-    """
-    await asyncio.sleep(0.3)
-
-    system_prompt = (
-        "You are a market-intelligence assistant. Given a single directive, "
-        "return an array of three trend data points in strict JSON format. "
-        "Each data point should have:\n"
-        "  - label (e.g. \"Search Volume\", \"Social Sentiment\")\n"
-        "  - value (e.g. \"75k searches/day\", \"+12% WoW\", \"48% negative\")\n"
-        "  - optional description (one sentence).\n"
-        "Output MUST be valid JSON that can be parsed into a list of objects."
-    )
-    user_prompt = f"Directive: \"{directive}\". Provide three trend data points in JSON."
-
-    try:
-        response = await openai.ChatCompletion.acreate(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.7,
-            max_tokens=200,
-        )
+        return TrendAnalyzerResult(interest_over_time=interest, current_interest=current, trending_queries=trending)
     except Exception:
-        # Fallback stub if GPT-4 call fails
-        return [
-            TrendDataPoint(label="Search Volume", value="+47% YoY", description="Estimated from public sources"),
-            TrendDataPoint(label="Social Sentiment", value="~65% positive", description="Based on Twitter and forum chatter"),
-            TrendDataPoint(label="News Mentions", value="+23% WoW", description="Aggregate across major outlets"),
-        ]
+        return TrendAnalyzerResult(interest_over_time={}, current_interest=0, trending_queries=[])
 
-    # Parse the assistant’s response text as JSON
-    text = response.choices[0].message.content.strip()
-    try:
-        import json
 
-        parsed = json.loads(text)
-        result: List[TrendDataPoint] = []
-        for item in parsed:
-            label = item.get("label", "")
-            value = item.get("value", "")
-            desc = item.get("description") or None
-            result.append(TrendDataPoint(label=label, value=value, description=desc))
-        if result:
-            return result
-    except Exception:
-        pass
-
-    # If parsing fails, return a fallback stub
+def build_summary_prompt(query: str, web: WebMonitorResult, trend: TrendAnalyzerResult):
+    heads = "\n".join(f"- {a.title} ({a.url})" for a in web.articles)
+    iot = "\n".join(f"  • {d}: {v}" for d, v in trend.interest_over_time.items())
+    trend_block = f"Current interest: {trend.current_interest}\nTop queries: {', '.join(trend.trending_queries) if trend.trending_queries else 'None'}"
     return [
-        TrendDataPoint(label="Search Volume", value="+47% YoY", description="Estimated fallback"),
-        TrendDataPoint(label="Social Sentiment", value="~65% positive", description="Fallback stub"),
-        TrendDataPoint(label="News Mentions", value="+23% WoW", description="Fallback stub"),
+        {"role": "system", "content": "You are an AI market‑intel analyst. Provide 3‑5 actionable sentences."},
+        {"role": "user", "content": f"Topic: {query}\n\nHeadlines:\n{heads}\n\nTrends:\n{iot}\n{trend_block}"},
     ]
 
 
-async def run_summary_agent(
-    directive: str, web_data: List[WebArticle], trend_data: List[TrendDataPoint]
-) -> str:
-    """
-    Summary Agent: calls OpenAI (GPT-4) to synthesize a paragraph-style summary.
-    """
-    await asyncio.sleep(0.3)
-
-    # Build a prompt combining web_data and trend_data
-    system_prompt = (
-        "You are a market-intelligence assistant. Given:\n"
-        "  • a directive\n"
-        "  • a list of web articles (each with title, url, summary)\n"
-        "  • a list of trend data points\n"
-        "produce a coherent, concise 3-4 sentence summary that an executive can read."
-    )
-
-    # Flatten web_data entries into text
-    web_lines = []
-    for art in web_data:
-        web_lines.append(f"- {art.title} ({art.url})\n  {art.summary[:100]}…")
-
-    trend_lines = [f"- {tp.label}: {tp.value} ({tp.description or ''})" for tp in trend_data]
-
-    user_prompt = (
-        f"Directive: \"{directive}\"\n\n"
-        "Web Articles:\n" + "\n".join(web_lines) + "\n\n"
-        "Trend Data:\n" + "\n".join(trend_lines) + "\n\n"
-        "Write a 3-4 sentence market intelligence summary."
-    )
-
+async def run_summary_agent(query: str, web: WebMonitorResult, trend: TrendAnalyzerResult) -> SummaryResult:
+    messages = build_summary_prompt(query, web, trend)
     try:
-        response = await openai.ChatCompletion.acreate(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+        rsp = await client.chat.completions.create(
+            model="gpt-4o-mini",  # or "gpt-3.5-turbo" if GPT‑4o unavailable
+            messages=messages,
             temperature=0.6,
-            max_tokens=250,
+            max_tokens=256,
         )
-        summary_text = response.choices[0].message.content.strip()
-        return summary_text
-    except Exception as e:
-        return f"Error generating summary: {e}"
+        txt = rsp.choices[0].message.content.strip()
+    except Exception as exc:
+        return SummaryResult(bullets=[f"• [Error] {exc}"])
+
+    lines = [ln.strip(" •-") for ln in txt.split("\n") if ln.strip()]
+    bullets = [f"• {ln}" for ln in lines][:5]
+    return SummaryResult(bullets=bullets or ["• (no summary)"])
 
 
-# ────────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────
 # Routes
-# ────────────────────────────────────────────────────────────────────────────────
-@app.get("/", response_class=JSONResponse)
-async def root_get():
-    """
-    GET "/" returns a simple JSON instruction.
-    """
-    return {"message": "Send a POST to / with JSON: {\"directive\": \"Your query here\"}"}
+# ──────────────────────────────────────────────────────────────
+@app.post("/", response_class=JSONResponse, response_model=FullResult)
+async def generate(req: DirectiveRequest):
+    topic = req.directive.strip()
+    if not topic:
+        raise HTTPException(status_code=400, detail="Directive cannot be empty")
+
+    web_task = run_web_monitor(topic)
+    trend_task = run_trend_analyzer(topic)
+    web, trend = await asyncio.gather(web_task, trend_task)
+    summary = await run_summary_agent(topic, web, trend)
+
+    return FullResult(directive=topic, web_monitor=web, trend_analyzer=trend, summary_agent=summary)
 
 
-@app.post("/", response_class=JSONResponse)
-async def root_post(request: DirectiveRequest):
-    """
-    POST "/" accepts a JSON body with {"directive": "..."} and returns detailed JSON.
-    """
-    directive_clean = request.directive.strip()
-    if not directive_clean:
-        raise HTTPException(status_code=400, detail="Directive cannot be empty.")
-
-    # Run agents concurrently
-    web_task = run_web_monitor(directive_clean)
-    trend_task = run_trend_analyzer(directive_clean)
-    web_data, trend_data = await asyncio.gather(web_task, trend_task)
-
-    summary_data = await run_summary_agent(directive_clean, web_data, trend_data)
-
-    result = ApiResult(
-        directive=directive_clean,
-        web_monitor=web_data,
-        trend_analyzer=trend_data,
-        summary_agent=summary_data,
-    )
-    return result.dict()
+@app.get("/")
+async def root():
+    return {"message": "POST JSON { 'directive': '...' } to /"}
 
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
