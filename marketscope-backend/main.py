@@ -38,7 +38,8 @@ client = AsyncOpenAI()  # Automatically picks up OPENAI_API_KEY
 app = FastAPI(title="MarketScope – Real‑Time Market Intel API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000",
+                   "https://marketscope.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
