@@ -1,564 +1,627 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // ← new import
 
-const AllInOneHome: React.FC = () => {
-  const router = useRouter(); // ← new hook
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+import { Search, TrendingUp, Activity, Brain, Globe, BarChart3, Target, Zap, ArrowRight, Menu, X } from "lucide-react";
+
+const Index = () => {
+  const router = useRouter();
   const [showIntro, setShowIntro] = useState(true);
   const [query, setQuery] = useState("");
-  const [exampleQueries, setExampleQueries] = useState<string[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [exampleQueries] = useState([
+    "Dissect Apple's generative-AI hiring velocity in Q2 2025",
+    "Contrast OpenAI & Anthropic's patent filings last 18 months", 
+    "Surface regulatory risk signals for crypto-custody startups",
+    "Map NVIDIA's supply-chain sentiment week-over-week",
+  ]);
 
   useEffect(() => {
-    const t = setTimeout(() => setShowIntro(false), 2500);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setShowIntro(false), 2500);
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    setExampleQueries([
-      "Dissect Apple’s generative-AI hiring velocity in Q2 2025",
-      "Contrast OpenAI & Anthropic’s patent filings last 18 months",
-      "Surface regulatory risk signals for crypto-custody startups",
-      "Map NVIDIA’s supply-chain sentiment week-over-week",
-    ]);
-  }, []);
-
-  const Icon: React.FC<{ path: string; size?: number; className?: string }> = ({
-    path,
-    size = 24,
-    className,
-  }) => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d={path} />
-    </svg>
-  );
-
-  const ICONS = {
-    logo:
-      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z",
-    webMonitor: "...",
-    trendAnalyzer: "...",
-    summaryAgent: "...",
-    twitter:
-      "M22.46 6c-.77.35-1.6.59-2.46.69A4.23 4.23 0 0 0 21.86 4c-.83.49-1.76.85-2.74 1.05A4.18 4.18 0 0 0 15.5 4c-2.34 0-4.23 1.9-4.23 4.22 0 .33.04.66.11.97C7.69 8.97 4.07 7.13 1.64 4.15a4.24 4.24 0 0 0-.57 2.12c0 1.46.75 2.75 1.9 3.5a4.2 4.2 0 0 1-1.92-.53v.05c0 2.04 1.45 3.75 3.36 4.13a4.32 4.32 0 0 1-1.9.07 4.24 4.24 0 0 0 3.94 2.93A8.4 8.4 0 0 1 1 18.58a11.86 11.86 0 0 0 6.41 1.88c7.68 0 11.88-6.36 11.88-11.9 0-.18-.01-.35-.02-.53A8.64 8.64 0 0 0 22.46 6z",
-    github:
-      "M12 0.5C5.73 0.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.92.58.11.79-.25.79-.55 0-.27-.01-1.15-.02-2.09-3.1.67-3.76-1.49-3.76-1.49-.53-1.35-1.3-1.71-1.3-1.71-1.06-.73.08-.72.08-.72 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.75-1.56-2.48-.28-5.09-1.24-5.09-5.51 0-1.22.44-2.21 1.17-2.99-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.14a10.9 10.9 0 0 1 2.87-.39c.97.01 1.95.13 2.87.39 2.19-1.45 3.15-1.14 3.15-1.14.62 1.57.23 2.73.11 3.02.73.78 1.17 1.77 1.17 2.99 0 4.29-2.61 5.23-5.1 5.5.43.37.81 1.1.81 2.21 0 1.6-.02 2.89-.02 3.29 0 .3.21.67.8.55A11.52 11.52 0 0 0 23.5 12c0-6.27-5.23-11.5-11.5-11.5z",
-  };
-
-  // ← new handler: navigate to /results with query param
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/results?directive=${encodeURIComponent(query.trim())}`);
+      router.push(`/results?directive=${encodeURIComponent(query)}`);
     }
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+    setIsMobileMenuOpen(false);
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
-
-        :root {
-          --bg-dark: #010409;
-          --accent: #00ffff;
-          --text-light: #e6edf3;
-          --text-muted: #8b949e;
-          --input-bg: #1a1f2e;
-          --border-soft: rgba(255, 255, 255, 0.08);
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        * {
+          box-sizing: border-box;
         }
+        
         body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
           margin: 0;
-          background: var(--bg-dark);
-          color: var(--text-light);
-          font-family: 'Inter', sans-serif;
-          overflow-x: hidden;
+          padding: 0;
         }
-        /* Intro */
-        .intro {
-          position: fixed;
-          inset: 0;
-          background: var(--bg-dark);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          z-index: 999;
+
+        .fade-in {
+          animation: fadeIn 0.8s ease-out forwards;
         }
-        .intro .sweep {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 200vmax;
-          height: 200vmax;
-          margin-top: -100vmax;
-          margin-left: -100vmax;
-          background-image: conic-gradient(
-            from 0deg at 50% 50%,
-            var(--bg-dark) 0% 80%,
-            rgba(0, 255, 255, 0.3) 92%,
-            #fff 100%
-          );
-          animation: rotateConic 5s linear infinite;
+
+        .fade-in-delay {
+          animation: fadeIn 0.8s ease-out 0.3s forwards;
+          opacity: 0;
         }
-        @keyframes rotateConic {
-          100% { transform: rotate(360deg); }
+
+        .slide-up {
+          animation: slideUp 0.8s ease-out forwards;
         }
-        .intro .pulse {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 110vmax;
-          height: 110vmax;
-          margin-top: -55vmax;
-          margin-left: -55vmax;
-          border: 2px solid rgba(0, 255, 255, 0.4);
+
+        .pulse-glow {
+          animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        .float {
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .spin-slow {
+          animation: spinSlow 20s linear infinite;
+        }
+
+        .spin-reverse {
+          animation: spinReverse 15s linear infinite;
+        }
+
+        .gradient-text {
+          background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .glass-effect {
+          background: rgba(15, 23, 42, 0.8);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .hover-lift:hover {
+          transform: translateY(-4px);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-scale:hover {
+          transform: scale(1.05);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .grid-pattern {
+          background-image: 
+            linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+          background-size: 50px 50px;
+        }
+
+        .loading-ring {
+          width: 120px;
+          height: 120px;
+          border: 4px solid rgba(6, 182, 212, 0.1);
           border-radius: 50%;
-          animation: pulseAnim 2s ease-out infinite;
-        }
-        @keyframes pulseAnim {
-          0% { opacity: 0; transform: scale(0.4); }
-          50% { opacity: 0.3; }
-          100% { opacity: 0; transform: scale(1); }
-        }
-        .intro h1 {
-          font-family: 'IBM Plex Sans', sans-serif;
-          font-size: 2.6rem;
-          font-weight: 700;
-          color: var(--accent);
-          text-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
-          opacity: 0;
-          animation: fadeInText 1.2s ease-out 0.8s forwards;
-        }
-        @keyframes fadeInText {
-          from { opacity: 0; filter: blur(6px); }
-          to { opacity: 1; filter: blur(0); }
+          border-top: 4px solid #06b6d4;
+          animation: spin 1s linear infinite;
         }
 
-        /* Page container */
-        .page {
-          display: flex;
-          flex-direction: column;
-          min-height: 100vh;
-        }
-
-        /* Header */
-        header {
-          position: sticky;
-          top: 0;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 16px 32px;
-          background: rgba(1, 4, 9, 0.85);
-          backdrop-filter: blur(6px);
-          border-bottom: 1px solid #21262d;
-          z-index: 50;
-        }
-        .logo-group {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .logo-text {
-          font-family: 'IBM Plex Sans', sans-serif;
-          font-size: 1.3rem;
-          font-weight: 700;
-          color: var(--accent);
-        }
-        nav a {
-          font-family: 'Inter', sans-serif;
-          font-size: 0.9rem;
-          color: var(--text-muted);
-          text-decoration: none;
-          margin-left: 24px;
-          position: relative;
-          transition: color 0.2s ease;
-        }
-        nav a::after {
-          content: "";
+        .loading-ring-inner {
+          width: 80px;
+          height: 80px;
+          border: 2px solid rgba(6, 182, 212, 0.2);
+          border-radius: 50%;
+          border-top: 2px solid #22d3ee;
+          animation: spinReverse 0.8s linear infinite;
           position: absolute;
-          bottom: -4px;
-          left: 0;
-          width: 0%;
-          height: 2px;
-          background: var(--accent);
-          transition: width 0.3s;
-        }
-        nav a:hover {
-          color: var(--text-light);
-        }
-        nav a:hover::after {
-          width: 100%;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
         }
 
-        /* Hero (centered) */
-        .hero {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center; /* center vertically */
-          text-align: center;
-          min-height: 60vh; /* smaller so section2 is closer */
-          background: radial-gradient(circle at top, #031b1d, var(--bg-dark));
-          padding: 20px 24px 40px;
-        }
-        .hero h2 {
-          font-family: 'IBM Plex Sans', sans-serif;
-          font-size: 3.4rem;
-          font-weight: 600;
-          color: var(--text-light);
-          margin: 0;
-          line-height: 1.1;
-          opacity: 0;
-          animation: fadeInUp 1s ease-out 0.4s forwards;
-        }
-        .hero p {
-          max-width: 40rem;
-          margin-top: 16px;
-          font-size: 1.05rem;
-          color: var(--text-muted);
-          line-height: 1.6;
-          opacity: 0;
-          animation: fadeInUp 1s ease-out 0.7s forwards;
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Value-Proposition Strip */
-        .hero-values {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 24px;
-          margin-top: 32px;
-          opacity: 0;
-          animation: fadeInUp 1s ease-out 1s forwards;
-        }
-        .value-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background: var(--input-bg);
-          border: 1px solid var(--border-soft);
-          border-radius: 6px;
-          font-family: 'Inter', sans-serif;
-          font-size: 1rem;
-          color: var(--text-light);
-          transition: background 0.2s, transform 0.1s;
-        }
-        .value-item:hover {
-          background: rgba(26, 31, 46, 0.9);
-          transform: translateY(-2px);
-        }
-
-        /* Search & Examples */
-        .search-full {
-          margin-top: 32px;
-          width: 100%;
-          max-width: 50rem;
-          position: relative;
-          opacity: 0;
-          animation: fadeInUp 1s ease-out 1.3s forwards;
-        }
-        .search-full input {
-          width: 100%;
-          padding: 18px 20px;
-          border-radius: 6px;
-          background: var(--input-bg);
-          border: 1px solid #30363d;
-          color: var(--text-light);
-          font-family: 'Inter', sans-serif;
-          font-size: 1.05rem;
-          transition: border 0.3s, box-shadow 0.3s;
-          text-align: left;
-        }
-        .search-full input::placeholder {
-          color: var(--text-muted);
-          font-style: italic;
-        }
-        .search-full input:focus {
-          border-color: var(--accent);
-          box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
-          outline: none;
-        }
-
-        .examples {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 12px;
-          margin-top: 18px;
-          justify-content: center;
-          opacity: 0;
-          animation: fadeInUp 1s ease-out 1.5s forwards;
-        }
-        .examples button {
-          background: transparent;
-          border: 1px solid var(--border-soft);
-          padding: 10px 14px;
-          border-radius: 6px;
-          font-size: 0.9rem;
-          color: var(--text-light);
-          cursor: pointer;
-          transition: background 0.2s, transform 0.1s;
-        }
-        .examples button:hover {
-          background: var(--input-bg);
-          transform: translateY(-2px);
-        }
-
-        /* Section wrapper (reduced vertical) */
-        section[id] {
-          padding: 60px 24px;
-        }
-        section.alt {
-          background: var(--bg-section);
-        }
-        .section-title {
-          font-family: 'IBM Plex Sans', sans-serif;
-          font-size: 2.2rem;
-          font-weight: 600;
-          color: #c9d1d9;
-          text-align: center;
-          margin: 0 0 16px;
-        }
-        .section-subtitle {
-          max-width: 40rem;
-          margin: 0 auto 40px;
-          font-size: 1rem;
-          color: var(--text-muted);
-          line-height: 1.6;
-          text-align: center;
-        }
-
-        /* Grid for detail sections (wider spacing) */
-        .grid {
-          display: grid;
-          gap: 40px;
-          max-width: 1000px;
-          margin: 0 auto;
-        }
-        @media (min-width: 768px) {
-          .grid {
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
-        .card {
-          background: var(--input-bg);
-          border: 1px solid var(--border-soft);
-          border-radius: 10px;
-          padding: 24px;
-          backdrop-filter: blur(10px);
-          transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-        }
-        .card h3 {
-          font-family: 'IBM Plex Sans', sans-serif;
-          font-size: 1.1rem;
-          font-weight: 600;
-          margin: 0 0 8px;
-          color: var(--accent);
-        }
-        .card p,
-        .card ul {
-          font-size: 0.95rem;
-          color: #c9d1d9;
-          line-height: 1.5;
-        }
-        .card ul {
-          margin: 0;
-          padding-left: 20px;
-        }
-        .card ul li {
-          margin-bottom: 8px;
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
-        /* Footer */
-        footer {
-          background: var(--bg-dark);
-          border-top: 1px solid #21262d;
-          padding: 56px 24px;
-          text-align: center;
+        @keyframes pulseGlow {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 40px rgba(6, 182, 212, 0.6);
+          }
         }
-        .footer-logo {
-          font-family: 'IBM Plex Sans', sans-serif;
-          font-size: 1.4rem;
-          font-weight: 700;
-          color: var(--accent);
-          margin: 0 0 10px;
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
         }
-        .footer-links {
-          display: flex;
-          justify-content: center;
-          gap: 18px;
-          margin-bottom: 12px;
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
-        .footer-links a {
-          color: var(--text-muted);
-          transition: color 0.2s;
+
+        @keyframes spinSlow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
-        .footer-links a:hover {
-          color: #fff;
+
+        @keyframes spinReverse {
+          from {
+            transform: rotate(360deg);
+          }
+          to {
+            transform: rotate(0deg);
+          }
         }
-        .footer-text {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-          margin: 0;
+
+        .text-shadow-glow {
+          text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .border-glow {
+          border: 1px solid rgba(6, 182, 212, 0.3);
+          box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+        }
+
+        .border-glow:hover {
+          border-color: rgba(6, 182, 212, 0.6);
+          box-shadow: 0 0 30px rgba(6, 182, 212, 0.2);
+        }
+
+        .smooth-transition {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bg-gradient-radial {
+          background: radial-gradient(ellipse at center, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+        }
+
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
 
-      {/* Intro animation */}
-      {showIntro && (
-        <div className="intro">
-          <div className="sweep" />
-          <div className="pulse" />
-          <h1>MarketScope</h1>
-        </div>
-      )}
-
-      <div className="page">
-        {/* Header */}
-        <header>
-          <div className="logo-group">
-            <Icon path={ICONS.logo} size={28} className="text-[var(--accent)]" />
-            <span className="logo-text">MarketScope</span>
+      <div className="min-h-screen bg-slate-950 text-slate-100">
+        {/* Loading Animation */}
+        {showIntro && (
+          <div className="fixed inset-0 bg-slate-950 flex items-center justify-center z-50">
+            <div className="relative">
+              <div className="loading-ring"></div>
+              <div className="loading-ring-inner"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center pulse-glow">
+                  <BarChart3 className="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+            <h1 className="absolute mt-48 text-3xl font-bold gradient-text text-shadow-glow fade-in-delay">
+              MarketScope
+            </h1>
           </div>
-          <nav>
-            <a href="#agents">Agents</a>
-            <a href="#stack">Stack & Use Cases</a>
-            <a href="#contact">Contact</a>
-          </nav>
+        )}
+
+        {/* Header */}
+        <header className="fixed top-0 w-full glass-effect z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center hover-scale">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold gradient-text">
+                  MarketScope
+                </span>
+              </div>
+
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex items-center space-x-8">
+                <button
+                  onClick={() => scrollToSection("agents")}
+                  className="text-slate-400 hover:text-cyan-400 smooth-transition font-medium relative group"
+                >
+                  Agents
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyan-400 smooth-transition group-hover:w-full"></span>
+                </button>
+                <button
+                  onClick={() => scrollToSection("features")}
+                  className="text-slate-400 hover:text-cyan-400 smooth-transition font-medium relative group"
+                >
+                  Features
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyan-400 smooth-transition group-hover:w-full"></span>
+                </button>
+                <button
+                  onClick={() => scrollToSection("use-cases")}
+                  className="text-slate-400 hover:text-cyan-400 smooth-transition font-medium relative group"
+                >
+                  Use Cases
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyan-400 smooth-transition group-hover:w-full"></span>
+                </button>
+                <button className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:from-cyan-600 hover:to-blue-700 smooth-transition hover-scale">
+                  Get Started
+                </button>
+              </nav>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden text-slate-400 hover:text-white smooth-transition"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden glass-effect border-t border-slate-700">
+              <div className="px-4 py-6 space-y-4">
+                <button
+                  onClick={() => scrollToSection("agents")}
+                  className="block w-full text-left text-slate-400 hover:text-cyan-400 smooth-transition font-medium"
+                >
+                  Agents
+                </button>
+                <button
+                  onClick={() => scrollToSection("features")}
+                  className="block w-full text-left text-slate-400 hover:text-cyan-400 smooth-transition font-medium"
+                >
+                  Features
+                </button>
+                <button
+                  onClick={() => scrollToSection("use-cases")}
+                  className="block w-full text-left text-slate-400 hover:text-cyan-400 smooth-transition font-medium"
+                >
+                  Use Cases
+                </button>
+                <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:from-cyan-600 hover:to-blue-700 smooth-transition">
+                  Get Started
+                </button>
+              </div>
+            </div>
+          )}
         </header>
 
-        {/* Hero (centered) */}
-        <section className="hero">
-          <h2>Clarity Amid Market Chaos</h2>
-          <p>
-            MarketScope fuses AI-driven agents with live data feeds to transform raw signals into
-            strategic insights—delivered instantly, so you can outpace competitors.
-          </p>
+        {/* Hero Section */}
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+          {/* Background Effects */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
+          <div className="absolute inset-0 bg-gradient-radial"></div>
+          <div className="absolute inset-0 grid-pattern opacity-50"></div>
+          
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="space-y-8 fade-in">
+              {/* Main Headline */}
+              <div className="space-y-4">
+                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight">
+                  <span className="block text-white">Clarity Amid</span>
+                  <span className="block gradient-text">
+                    Market Chaos
+                  </span>
+                </h1>
+                <p className="text-xl sm:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+                  MarketScope fuses AI-driven agents with live data feeds to transform raw signals into 
+                  strategic insights—delivered instantly, so you can outpace competitors.
+                </p>
+              </div>
 
-          {/* Value-Proposition Strip */}
-          <div className="hero-values">
-            <div className="value-item">
-              <Icon path={ICONS.webMonitor} size={20} className="text-[var(--accent)]" />
-              <span>Real-Time Monitoring</span>
-            </div>
-            <div className="value-item">
-              <Icon path={ICONS.trendAnalyzer} size={20} className="text-[var(--accent)]" />
-              <span>Trend Analysis</span>
-            </div>
-            <div className="value-item">
-              <Icon path={ICONS.summaryAgent} size={20} className="text-[var(--accent)]" />
-              <span>Automated Summaries</span>
-            </div>
-          </div>
+              {/* Value Propositions */}
+              <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm sm:text-base fade-in-delay">
+                <div className="flex items-center space-x-2 glass-effect rounded-full px-4 py-2 hover-lift">
+                  <Activity className="w-5 h-5 text-cyan-400" />
+                  <span>Real-Time Monitoring</span>
+                </div>
+                <div className="flex items-center space-x-2 glass-effect rounded-full px-4 py-2 hover-lift">
+                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                  <span>Trend Analysis</span>
+                </div>
+                <div className="flex items-center space-x-2 glass-effect rounded-full px-4 py-2 hover-lift">
+                  <Brain className="w-5 h-5 text-cyan-400" />
+                  <span>AI-Powered Insights</span>
+                </div>
+              </div>
 
-          {/* Full-Width Search Input */}
-          <div className="search-full">
-            <form onSubmit={handleSearchSubmit}>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Draft a directive…"
-              />
-            </form>
-          </div>
+              {/* Search Section */}
+              <div className="max-w-4xl mx-auto space-y-6 slide-up">
+                <form onSubmit={handleSearchSubmit} className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Draft a directive... (e.g., Analyze OpenAI's latest product launches)"
+                      className="w-full pl-12 pr-16 py-4 text-lg glass-effect rounded-2xl border-glow smooth-transition placeholder-slate-500 text-white focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white p-2 rounded-xl hover:from-cyan-600 hover:to-blue-700 smooth-transition hover-scale"
+                    >
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </form>
 
-          {/* Example Queries */}
-          <div className="examples">
-            {exampleQueries.map((q) => (
-              <button key={q} onClick={() => setQuery(q)}>
-                {q}
-              </button>
-            ))}
+                {/* Example Queries */}
+                <div className="space-y-3">
+                  <p className="text-slate-400 text-sm">Try these examples:</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {exampleQueries.map((example, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setQuery(example)}
+                        className="text-left p-4 glass-effect border-glow rounded-xl smooth-transition text-sm group hover-lift"
+                      >
+                        <span className="text-slate-300 group-hover:text-cyan-400 smooth-transition">
+                          {example}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         {/* Agents Section */}
-        <section id="agents" className="alt">
-          <h3 className="section-title">Agents</h3>
-          <p className="section-subtitle">
-            A multi-agent system that monitors competitors, product launches, investor news, and synthesizes competitive intelligence.
-          </p>
-          <div className="grid">
-            <div className="card">
-              <h3>Web Monitor Agent</h3>
-              <p>
-                Continuously scrapes or queries APIs (TechCrunch, Crunchbase, Twitter) to gather live data on competitors and product launches.
+        <section id="agents" className="py-20 lg:py-32 bg-slate-900/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
+                AI <span className="gradient-text">Agents</span>
+              </h2>
+              <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+                A multi-agent system that monitors competitors, product launches, investor news, 
+                and synthesizes competitive intelligence in real-time.
               </p>
             </div>
-            <div className="card">
-              <h3>Trend Analyzer Agent</h3>
-              <p>
-                Detects spikes, mention surges, and sentiment trends across news articles, social media, and industry reports.
-              </p>
-            </div>
-            <div className="card">
-              <h3>Summary Agent</h3>
-              <p>
-                Delivers concise, bullet-point competitive intelligence reports—enabling rapid decision-making without manual research.
-              </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="group glass-effect border-glow rounded-2xl p-8 smooth-transition hover-lift">
+                <div className="w-12 h-12 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 smooth-transition float">
+                  <Globe className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-4 group-hover:text-cyan-400 smooth-transition">Web Monitor Agent</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Continuously scrapes APIs from TechCrunch, Crunchbase, and social platforms to gather 
+                  live data on competitors and product launches.
+                </p>
+              </div>
+
+              <div className="group glass-effect border-glow rounded-2xl p-8 smooth-transition hover-lift">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 smooth-transition float" style={{animationDelay: '2s'}}>
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-4 group-hover:text-cyan-400 smooth-transition">Trend Analyzer Agent</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Detects spikes, mention surges, and sentiment trends across news articles, 
+                  social media, and industry reports using advanced ML algorithms.
+                </p>
+              </div>
+
+              <div className="group glass-effect border-glow rounded-2xl p-8 smooth-transition hover-lift md:col-span-2 lg:col-span-1">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 smooth-transition float" style={{animationDelay: '4s'}}>
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-4 group-hover:text-cyan-400 smooth-transition">Summary Agent</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Delivers concise, bullet-point competitive intelligence reports enabling rapid 
+                  decision-making without manual research overhead.
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Stack & Use Cases Section */}
-        <section id="stack">
-          <h3 className="section-title">Stack & Use Cases</h3>
-          <p className="section-subtitle">
-            Built with cutting-edge AI frameworks. Ideal for startups, VC analysts, and marketers.
-          </p>
-          <div className="grid">
-            <div className="card">
-              <h3>Tech Stack</h3>
-              <ul>
-                <li><strong>CrewAI:</strong> Orchestrates multi-agent workflows</li>
-                <li><strong>LinkUp API:</strong> Provides job and hiring data insights</li>
-                <li><strong>LangChain:</strong> Manages LLM integrations and prompt chaining</li>
-                <li><strong>Pinecone (optional):</strong> Vector database for memory & similarity search</li>
-              </ul>
+        {/* Features Section */}
+        <section id="features" className="py-20 lg:py-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
+                Powerful <span className="gradient-text">Features</span>
+              </h2>
+              <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+                Built with cutting-edge AI frameworks and designed for enterprise-grade performance.
+              </p>
             </div>
-            <div className="card">
-              <h3>Use Cases</h3>
-              <ul>
-                <li><strong>Startups:</strong> Benchmark competitors, identify emerging market gaps</li>
-                <li><strong>VC Analysts:</strong> Monitor startup valuation signals and funding activity</li>
-                <li><strong>Marketers:</strong> Track product launches, campaign sentiment, and brand positioning</li>
-              </ul>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-8">
+                <div className="flex items-start space-x-4 hover-lift smooth-transition">
+                  <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 pulse-glow">
+                    <Zap className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">Real-Time Processing</h3>
+                    <p className="text-slate-400">Lightning-fast data processing with sub-second response times for critical market insights.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4 hover-lift smooth-transition">
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 pulse-glow" style={{animationDelay: '1s'}}>
+                    <Target className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">Precision Targeting</h3>
+                    <p className="text-slate-400">Advanced algorithms identify the most relevant signals while filtering out noise automatically.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4 hover-lift smooth-transition">
+                  <div className="w-8 h-8 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 pulse-glow" style={{animationDelay: '2s'}}>
+                    <BarChart3 className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">Interactive Analytics</h3>
+                    <p className="text-slate-400">Rich visualizations and interactive dashboards that make complex data immediately actionable.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="glass-effect border-glow rounded-2xl p-8 hover-lift smooth-transition">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-400">Tech Stack</span>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full pulse-glow"></div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover-lift smooth-transition">
+                        <span className="font-medium">CrewAI</span>
+                        <span className="text-cyan-400 text-sm">Multi-agent orchestration</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover-lift smooth-transition">
+                        <span className="font-medium">LangChain</span>
+                        <span className="text-purple-400 text-sm">LLM integration</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover-lift smooth-transition">
+                        <span className="font-medium">Pinecone</span>
+                        <span className="text-emerald-400 text-sm">Vector database</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover-lift smooth-transition">
+                        <span className="font-medium">LinkUp API</span>
+                        <span className="text-blue-400 text-sm">Market data</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Use Cases Section */}
+        <section id="use-cases" className="py-20 lg:py-32 bg-slate-900/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
+                Use <span className="gradient-text">Cases</span>
+              </h2>
+              <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+                Trusted by startups, VC firms, and enterprise marketing teams worldwide.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center space-y-6 hover-lift smooth-transition">
+                <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto pulse-glow">
+                  <Zap className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Startups</h3>
+                  <p className="text-slate-400 leading-relaxed">
+                    Benchmark competitors, identify emerging market gaps, and track funding landscapes 
+                    to position your startup strategically.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center space-y-6 hover-lift smooth-transition">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto pulse-glow" style={{animationDelay: '1s'}}>
+                  <BarChart3 className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">VC Analysts</h3>
+                  <p className="text-slate-400 leading-relaxed">
+                    Monitor startup valuation signals, funding activity patterns, and market timing 
+                    indicators for informed investment decisions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center space-y-6 hover-lift smooth-transition">
+                <div className="w-16 h-16 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center mx-auto pulse-glow" style={{animationDelay: '2s'}}>
+                  <Target className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Marketers</h3>
+                  <p className="text-slate-400 leading-relaxed">
+                    Track product launches, campaign sentiment, brand positioning changes, 
+                    and competitive messaging strategies in real-time.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Footer */}
-        <footer id="contact">
-          <div className="footer-logo">MarketScope</div>
-          <div className="footer-links">
-            <a href="https://twitter.com" aria-label="Twitter">
-              <Icon path={ICONS.twitter} size={20} />
-            </a>
-            <a href="https://github.com" aria-label="GitHub">
-              <Icon path={ICONS.github} size={20} />
-            </a>
+        <footer className="border-t border-slate-800 bg-slate-950">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center space-y-6">
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center hover-scale">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold gradient-text">
+                  MarketScope
+                </span>
+              </div>
+              <p className="text-slate-400 max-w-2xl mx-auto">
+                Transforming market intelligence through AI-powered insights. 
+                Stay ahead of the competition with real-time competitive analysis.
+              </p>
+              <div className="text-sm text-slate-500">
+                © {new Date().getFullYear()} MarketScope Inc. All rights reserved.
+              </div>
+            </div>
           </div>
-          <p className="footer-text">© {new Date().getFullYear()} MarketScope Inc. All rights reserved.</p>
         </footer>
       </div>
     </>
   );
 };
 
-export default AllInOneHome;
+export default Index;
