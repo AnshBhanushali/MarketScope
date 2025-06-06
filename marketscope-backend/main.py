@@ -4,6 +4,7 @@ import os
 import asyncio
 from typing import List
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI, Body, HTTPException
 from fastapi.responses import JSONResponse
@@ -28,6 +29,18 @@ openai.api_key = OPENAI_API_KEY
 
 app = FastAPI(title="MarketScope – Real-Time Market Intel Generator")
 
+origins = [
+    "http://localhost:3000",  # your Next.js dev server
+    # Add other origins if needed (e.g. your production domain)
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],       # allow GET, POST, OPTIONS, etc.
+    allow_headers=["*"],       # allow all headers
+)
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Pydantic model for incoming request
