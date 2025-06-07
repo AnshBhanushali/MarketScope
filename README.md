@@ -1,6 +1,22 @@
 # MarketScope 🧠📊
 
-MarketScope is an AI-powered market intelligence web app that uses multiple AI agents to analyze trends, summarize web content, and provide insightful summaries. It integrates a beautiful frontend with a FastAPI backend, OpenAI for AI processing, and ChromaDB for vector storage.
+MarketScope is a next-gen, full-stack AI platform for real-time market intelligence, built on a multi-agent architecture using CrewAI, OpenAI, and Model Context Protocol (MCP). It orchestrates AI agents that scrape web data, perform trend analysis, and generate executive summaries with contextual memory and explainability — all in a stunningly designed Next.js + Tailwind frontend.
+
+It is designed to demonstrate agent collaboration, contextual reasoning, and modular LLM pipelines with:
+
+🧠 LLM orchestration (OpenAI + CrewAI)
+
+📈 Real-time interest graphs via Google Trends
+
+📰 Live headline parsing using WebMonitor agents
+
+🔁 MCP-powered multi-agent memory/context
+
+📦 Embeddings + vector recall via ChromaDB
+
+🎨 UI inspired by metaverse design language
+
+✅ Perfect as a base for building RAG pipelines, analyst tools, sentiment dashboards, or autonomous research agents.
 
 <img width="654" alt="Screenshot 2025-06-06 at 10 00 10 PM" src="https://github.com/user-attachments/assets/a90da7a3-5e00-4d35-ab5d-c719ae42bf6c" />
 
