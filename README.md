@@ -78,5 +78,5 @@ Frontend on Vercel:
 * Saved searches and user dashboards
 * PDF/document uploads for custom analysis
 * RAG-based querying and citation system
-<img width="654" alt="Screenshot 2025-06-06 at 10 00 10 PM" src="https://github.com/user-attachments/assets/a90da7a3-5e00-4d35-ab5d-c719ae42bf6c" />
+
 
